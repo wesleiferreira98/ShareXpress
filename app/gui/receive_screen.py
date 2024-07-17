@@ -1,9 +1,6 @@
 import sys
-from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QMessageBox, QFileDialog, QLineEdit, QLabel, QListWidget, QProgressBar, QDialog
-from PyQt5.QtCore import Qt
-import threading
-import socket
-
+from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QLabel, QMessageBox, QApplication
+from PyQt5.QtCore import Qt, pyqtSlot
 from app.network.server import FileServer
 
 class ReceiveScreen(QMainWindow):
@@ -30,25 +27,40 @@ class ReceiveScreen(QMainWindow):
         self.setCentralWidget(container)
 
         self.server_running = False
-        self.server_thread = None
-        self.file_server = FileServer()  # Certifique-se de inicializar o servidor aqui
+        self.file_server = FileServer()  # Inicializa FileServer como um QThread
+
+        # Conectar sinais de FileServer aos slots da ReceiveScreen
+        self.file_server.message.connect(self.show_message)
+        self.file_server.progress_updated.connect(self.update_progress)
 
     def get_ip_address(self):
+        import socket
         hostname = socket.gethostname()
         ip_address = socket.gethostbyname(hostname)
         return ip_address
 
+    @pyqtSlot(str)
+    def show_message(self, message):
+        QMessageBox.information(self, "Servidor de Arquivos", message)
+
+    @pyqtSlot(int)
+    def update_progress(self, progress):
+        # Implemente a atualização da barra de progresso aqui
+        pass
+
     def toggle_server(self):
-        if self.server_running:
-            self.file_server.stop_server()
-            if self.server_thread is not None:
-                self.server_thread.join()
-            self.server_running = False
-            self.server_button.setText("Iniciar Servidor")
-            QMessageBox.information(self, "Servidor", "Servidor parado com sucesso!")
-        else:
-            self.server_thread = threading.Thread(target=self.file_server.start_server)
-            self.server_thread.start()
+        if not self.server_running:
+            self.file_server.start()
             self.server_running = True
             self.server_button.setText("Encerrar Servidor")
-            QMessageBox.information(self, "Servidor", "Servidor iniciado com sucesso!")
+        else:
+            self.file_server.stop_server()
+            self.server_running = False
+            self.server_button.setText("Iniciar Servidor")
+
+    def closeEvent(self, event):
+        if self.server_running:
+            self.file_server.stop_server()
+            self.file_server.wait()
+        event.accept()
+

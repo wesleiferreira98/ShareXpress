@@ -2,11 +2,8 @@ from PyQt5.QtWidgets import QApplication
 from app.gui.main_window import MainWindow
 import sys
 
-def main():
+if __name__ == '__main__':
     app = QApplication(sys.argv)
     main_window = MainWindow()
     main_window.show()
     sys.exit(app.exec_())
-
-if __name__ == '__main__':
-    main()

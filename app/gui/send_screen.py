@@ -1,7 +1,8 @@
 import socket
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QMessageBox, QFileDialog, QLineEdit, QLabel, QListWidget, QProgressBar, QDialog,QProgressDialog
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt,pyqtSlot
+from app.network.client import FileClient
 class SendScreen(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -48,7 +49,7 @@ class SendScreen(QMainWindow):
         ip = self.ip_input.text()
         port = int(self.port_input.text())
         try:
-            with socket.create_connection((ip, port), timeout=5):
+            with socket.create_connection((ip, port), timeout=10):
                 QMessageBox.information(self, "Conexão", "Conexão bem-sucedida!")
         except Exception as e:
             QMessageBox.critical(self, "Conexão", f"Falha na conexão: {e}")
@@ -57,18 +58,25 @@ class SendScreen(QMainWindow):
         ip = self.ip_input.text()
         port = int(self.port_input.text())
         files = [self.file_list.item(i).text() for i in range(self.file_list.count())]
-        
+
         progress_dialog = QProgressDialog("Enviando arquivos...", "Cancelar", 0, len(files), self)
         progress_dialog.setWindowModality(Qt.WindowModal)
+        progress_dialog.setMinimumDuration(0)
         progress_dialog.show()
 
-        for i, file in enumerate(files):
-            progress_dialog.setValue(i)
-            if progress_dialog.wasCanceled():
-                break
-            # Aqui você adiciona a lógica para enviar cada arquivo
-            # Por exemplo, use a função send_file que definimos antes
-            # self.send_file(file, ip, port)
+        self.client_threads = []
 
-        progress_dialog.setValue(len(files))
-        QMessageBox.information(self, "Envio", "Arquivos enviados com sucesso!")
+        for file in files:
+            client_thread = FileClient(ip, port, file)
+            client_thread.progress_updated.connect(progress_dialog.setValue)
+            client_thread.message.connect(self.show_message)
+            self.client_threads.append(client_thread)
+
+        for client_thread in self.client_threads:
+            client_thread.start()
+
+            
+
+    @pyqtSlot(str)
+    def show_message(self, message):
+        QMessageBox.information(self, "Envio de Arquivos", message)

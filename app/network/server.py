@@ -1,8 +1,13 @@
 import os
 import socket
+from PyQt5.QtCore import QThread, pyqtSignal
 
-class FileServer:
+class FileServer(QThread):
+    progress_updated = pyqtSignal(int)
+    message = pyqtSignal(str)
+
     def __init__(self, host='0.0.0.0', port=12345):
+        super().__init__()
         self.host = host
         self.port = port
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -13,37 +18,50 @@ class FileServer:
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
 
-    def start_server(self):
+    def run(self):
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
         self.running = True
-        print("Server started, waiting for connection...")
+        self.message.emit("Server started, waiting for connection...")
 
         while self.running:
             client_socket, addr = self.server_socket.accept()
-            print(f"Connection from {addr}")
+            self.message.emit(f"Connection from {addr}")
             self.handle_client(client_socket)
 
     def handle_client(self, client_socket):
+        print("Handle Iniciado.....")
         with client_socket:
             file_info = client_socket.recv(1024).decode()
             if file_info:
+                client_socket.sendall(b"OK")  # Confirmação de recebimento do cabeçalho
                 file_name, file_size = file_info.split(',')
                 file_path = os.path.join(self.save_dir, file_name)
                 file_size = int(file_size)
 
                 with open(file_path, 'wb') as f:
+                    print("Arquivo Iniciado.....")
                     bytes_received = 0
                     while bytes_received < file_size:
+                        print("Arquivo Lido.....")
                         chunk = client_socket.recv(1024)
+                        print(f"Valor de chunk: {chunk}")
                         if not chunk:
+                            print("chunk Parado.....")
                             break
                         f.write(chunk)
+                        print("Dados escritos no arquivo.")
                         bytes_received += len(chunk)
+                        progress = int((bytes_received / file_size) * 100)
+                        self.progress_updated.emit(progress)
+                        #self.message.emit(f"Recebido: {bytes_received} de {file_size} bytes")
 
-                print(f"File {file_name} received and saved to {file_path}")
+                #self.message.emit(f"File {file_name} received and saved to {file_path}")
+
+                # Enviar confirmação de recebimento ao cliente
+                client_socket.sendall(b"OK")
 
     def stop_server(self):
         self.running = False
         self.server_socket.close()
-        print("Server stopped")
+        self.message.emit("Server stopped")
