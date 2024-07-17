@@ -8,6 +8,52 @@ class ReceiveScreen(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Receber Arquivos")
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #2e2e2e;
+                color: #f0f0f0;
+            }
+            QPushButton {
+                background-color: #5e5e5e;
+                border: 1px solid #5e5e5e;
+                border-radius: 5px;
+                padding: 5px;
+            }
+            QPushButton:hover {
+                background-color: #7e7e7e;
+            }
+            QPushButton:pressed {
+                background-color: #3e3e3e;
+            }
+            QProgressBar {
+                background-color: #3e3e3e;
+                border: 1px solid #3e3e3e;
+                border-radius: 5px;
+                text-align: center;
+            }
+            QProgressBar::chunk {
+                background-color: #5e5e5e;
+                width: 20px;
+            }
+            QListWidget {
+                background-color: #3e3e3e;
+                border: 1px solid #3e3e3e;
+            }
+            QLineEdit {
+                background-color: #3e3e3e;
+                border: 1px solid #5e5e5e;
+                padding: 5px;
+                border-radius: 5px;
+                color: #f0f0f0;
+            }
+            QLabel {
+                background-color: #3e3e3e;
+                border: 1px solid #2e2e2e;
+                padding: 5px;
+                border-radius: 5px;
+                color: #f0f0f0;
+            }
+        """)
         self.setGeometry(300, 300, 600, 400)
 
         layout = QVBoxLayout()
