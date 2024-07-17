@@ -15,26 +15,27 @@ class SendScreen(QMainWindow):
                 color: #f0f0f0;
             }
             QPushButton {
-                background-color: #5e5e5e;
-                border: 1px solid #5e5e5e;
+                background-color: #0D47A1;
+                border: 1px solid #0D47A1;
                 border-radius: 5px;
-                padding: 5px;
+                padding: 10px;
             }
             QPushButton:hover {
-                background-color: #7e7e7e;
+                background-color: #0D47A1;
             }
             QPushButton:pressed {
-                background-color: #3e3e3e;
+                background-color: #536DFE;
             }
             QProgressBar {
                 background-color: #3e3e3e;
                 border: 1px solid #3e3e3e;
                 border-radius: 6px;
+                width: 5px;
                 text-align: center;
             }
             QProgressBar::chunk {
-                background-color: #5e5e5e;
-                width: 20px;
+                background-color: #0D47A1;
+                width: 5px;
             }
             QListWidget {
                 background-color: #3e3e3e;
@@ -43,8 +44,8 @@ class SendScreen(QMainWindow):
             }
             QLineEdit {
                 background-color: #3e3e3e;
-                border: 1px solid #5e5e5e;
-                padding: 5px;
+                border: 1px solid #0D47A1;
+                padding: 7px;
                 border-radius: 5px;
                 color: #f0f0f0;
             }
@@ -115,6 +116,7 @@ class SendScreen(QMainWindow):
         options = QFileDialog.Options()
         files, _ = QFileDialog.getOpenFileNames(self, "Selecionar Arquivos", "", "All Files (*)", options=options)
         self.files = []
+        self.file_widgets = {}  # Dicionário para armazenar widgets de arquivo
         if files:
             for file in files:
                 file_name = os.path.basename(file)
@@ -124,6 +126,7 @@ class SendScreen(QMainWindow):
                 item.setSizeHint(item_widget.sizeHint())
                 self.file_list.addItem(item)
                 self.file_list.setItemWidget(item, item_widget)
+                self.file_widgets[file] = item_widget  # Armazenar o widget de arquivo no dicionário
 
     def test_connection(self):
         ip = self.ip_input.text()
@@ -137,16 +140,11 @@ class SendScreen(QMainWindow):
     def send_files(self):
         ip = self.ip_input.text()
         port = int(self.port_input.text())
-        progress_dialog = QProgressDialog("Enviando arquivos...", "Cancelar", 0, len(self.files), self)
-        progress_dialog.setWindowModality(Qt.WindowModal)
-        progress_dialog.setMinimumDuration(0)
-        progress_dialog.show()
-
         self.client_threads = []
 
         for file in self.files:
             client_thread = FileClient(ip, port, file)
-            client_thread.progress_updated.connect(progress_dialog.setValue)
+            client_thread.progress_updated.connect(self.file_widgets[file].progress_bar.setValue)
             client_thread.message.connect(self.show_message)
             self.client_threads.append(client_thread)
 

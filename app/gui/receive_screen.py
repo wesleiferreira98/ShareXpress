@@ -14,16 +14,16 @@ class ReceiveScreen(QMainWindow):
                 color: #f0f0f0;
             }
             QPushButton {
-                background-color: #5e5e5e;
-                border: 1px solid #5e5e5e;
+                background-color: #0D47A1;
+                border: 1px solid #0D47A1;
                 border-radius: 5px;
-                padding: 5px;
+                padding: 10px;
             }
             QPushButton:hover {
-                background-color: #7e7e7e;
+                background-color: #0D47A1;
             }
             QPushButton:pressed {
-                background-color: #3e3e3e;
+                background-color: #536DFE;
             }
             QProgressBar {
                 background-color: #3e3e3e;
@@ -33,11 +33,12 @@ class ReceiveScreen(QMainWindow):
             }
             QProgressBar::chunk {
                 background-color: #5e5e5e;
-                width: 20px;
+                width: 10px;
             }
             QListWidget {
                 background-color: #3e3e3e;
                 border: 1px solid #3e3e3e;
+                border-radius: 20px;
             }
             QLineEdit {
                 background-color: #3e3e3e;
