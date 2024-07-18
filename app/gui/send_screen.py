@@ -1,8 +1,8 @@
 import os
 import socket
-import sys
-from PyQt5.QtWidgets import QApplication, QListWidgetItem,QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QFileDialog, QLineEdit, QLabel, QListWidget, QProgressBar, QDialog, QProgressDialog, QFrame
-from PyQt5.QtCore import Qt, pyqtSlot, QPropertyAnimation
+import re
+from PyQt5.QtWidgets import QListWidgetItem,QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QFileDialog, QLineEdit, QLabel, QListWidget, QProgressBar, QDialog, QProgressDialog, QFrame
+from PyQt5.QtCore import  pyqtSlot, QPropertyAnimation
 from app.gui.components.file_item_widget import FileItemWidget
 from app.network.client import FileClient
 class SendScreen(QMainWindow):
@@ -111,11 +111,12 @@ class SendScreen(QMainWindow):
         container = QWidget()
         container.setLayout(main_layout)
         self.setCentralWidget(container)
+        self.files = []
     
     def open_file_dialog(self):
         options = QFileDialog.Options()
         files, _ = QFileDialog.getOpenFileNames(self, "Selecionar Arquivos", "", "All Files (*)", options=options)
-        self.files = []
+        
         self.file_widgets = {}  # Dicionário para armazenar widgets de arquivo
         if files:
             for file in files:
@@ -128,9 +129,34 @@ class SendScreen(QMainWindow):
                 self.file_list.setItemWidget(item, item_widget)
                 self.file_widgets[file] = item_widget  # Armazenar o widget de arquivo no dicionário
 
+    def validate_ip(self, ip):
+        ip_pattern = re.compile(
+            r"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
+        )
+        return ip_pattern.match(ip) is not None
+    
     def test_connection(self):
         ip = self.ip_input.text()
-        port = int(self.port_input.text())
+        port = self.port_input.text()
+
+        if not ip:
+            QMessageBox.warning(self, "Erro", "Endereço IP está vazio. Por favor, insira um endereço IP.")
+            return
+        
+        if not self.validate_ip(ip):
+            QMessageBox.warning(self, "Erro", "Endereço IP inválido. Por favor, insira um endereço IP válido.")
+            return
+
+        if not port:
+            QMessageBox.warning(self, "Erro", "Porta está vazia. Por favor, insira uma porta.")
+            return
+        
+        try:
+            port = int(port)
+        except ValueError:
+            QMessageBox.warning(self, "Erro", "Porta inválida. Por favor, insira um número de porta válido.")
+            return
+
         try:
             with socket.create_connection((ip, port), timeout=10):
                 QMessageBox.information(self, "Conexão", "Conexão bem-sucedida!")
@@ -138,8 +164,30 @@ class SendScreen(QMainWindow):
             QMessageBox.critical(self, "Conexão", f"Falha na conexão: {e}")
 
     def send_files(self):
-        ip = self.ip_input.text()
-        port = int(self.port_input.text())
+        try:
+            ip = self.ip_input.text()
+            port = int(self.port_input.text())
+        except ValueError:
+            QMessageBox.warning(self, "Erro", "Porta inválida. Por favor, insira um número de porta válido.")
+            return
+       
+        if not ip:
+            QMessageBox.warning(self, "Erro", "Endereço IP está vazio. Por favor, insira um endereço IP.")
+            return
+        
+        if not self.validate_ip(ip):
+            QMessageBox.warning(self, "Erro", "Endereço IP inválido. Por favor, insira um endereço IP válido.")
+            return
+
+        if not port:
+            QMessageBox.warning(self, "Erro", "Porta está vazia. Por favor, insira uma porta.")
+            return
+        
+        try:
+            port = int(port)
+        except ValueError:
+            QMessageBox.warning(self, "Erro", "Porta inválida. Por favor, insira um número de porta válido.")
+            return
         self.client_threads = []
 
         for file in self.files:

@@ -2,6 +2,7 @@ import sys
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QVBoxLayout, QWidget, QLabel, QMessageBox, QApplication
 from PyQt5.QtCore import Qt, pyqtSlot
 from app.network.server import FileServer
+import socket
 
 class ReceiveScreen(QMainWindow):
     def __init__(self):
@@ -47,23 +48,39 @@ class ReceiveScreen(QMainWindow):
                 border-radius: 5px;
                 color: #f0f0f0;
             }
-            QLabel {
-                background-color: #3e3e3e;
-                border: 1px solid #2e2e2e;
+             QLabel {
                 padding: 5px;
                 border-radius: 5px;
                 color: #f0f0f0;
+                font-size: 18px;  /* Aumenta o tamanho da fonte dos rótulos */
             }
         """)
         self.setGeometry(300, 300, 600, 400)
 
         layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignCenter)  # Centraliza os widgets no layout
+        layout.setSpacing(20)  # Espaçamento entre os widgets
+
+        self.title_label = QLabel("Informações do Servidor")
+        self.title_label.setAlignment(Qt.AlignCenter)
+        self.title_label.setStyleSheet("font-size: 24px;")  # Aumenta o tamanho da fonte do título
+        layout.addWidget(self.title_label)
+
+        container = QWidget()
+        container.setStyleSheet("background-color: #3e3e3e; border-radius: 15px; padding: 20px;")  # Bordas arredondadas e padding
+        container_layout = QVBoxLayout()
+        container_layout.setAlignment(Qt.AlignCenter)
+        container.setLayout(container_layout)
 
         self.ip_label = QLabel(f"Endereço IP: {self.get_ip_address()}")
-        layout.addWidget(self.ip_label)
+        self.ip_label.setAlignment(Qt.AlignCenter)
+        container_layout.addWidget(self.ip_label)
 
         self.port_label = QLabel("Porta: 12345")
-        layout.addWidget(self.port_label)
+        self.port_label.setAlignment(Qt.AlignCenter)
+        container_layout.addWidget(self.port_label)
+
+        layout.addWidget(container)
 
         self.server_button = QPushButton("Iniciar Servidor", self)
         self.server_button.clicked.connect(self.toggle_server)
@@ -81,7 +98,6 @@ class ReceiveScreen(QMainWindow):
         self.file_server.progress_updated.connect(self.update_progress)
 
     def get_ip_address(self):
-        import socket
         hostname = socket.gethostname()
         ip_address = socket.gethostbyname(hostname)
         return ip_address
@@ -102,12 +118,14 @@ class ReceiveScreen(QMainWindow):
             self.server_button.setText("Encerrar Servidor")
         else:
             self.file_server.stop_server()
+            self.file_server.terminate() # Aguarda a thread terminar
+            self.file_server = FileServer()  # Recria a instância do servidor
             self.server_running = False
             self.server_button.setText("Iniciar Servidor")
 
     def closeEvent(self, event):
         if self.server_running:
             self.file_server.stop_server()
-            self.file_server.wait()
+            self.file_server.terminate()
         event.accept()
 

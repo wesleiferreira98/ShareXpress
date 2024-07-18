@@ -11,6 +11,7 @@ class FileServer(QThread):
         self.host = host
         self.port = port
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Adiciona essa linha para permitir reutilização do endereço
         self.running = False
         self.save_dir = os.path.join(os.path.expanduser("~"), "ShareXpress")
 
@@ -25,12 +26,14 @@ class FileServer(QThread):
         self.message.emit("Server started, waiting for connection...")
 
         while self.running:
-            client_socket, addr = self.server_socket.accept()
-            self.message.emit(f"Connection from {addr}")
-            self.handle_client(client_socket)
+            try:
+                client_socket, addr = self.server_socket.accept()
+                self.message.emit(f"Connection from {addr}")
+                self.handle_client(client_socket)
+            except OSError:
+                break
 
     def handle_client(self, client_socket):
-        print("Handle Iniciado.....")
         with client_socket:
             file_info = client_socket.recv(1024).decode()
             if file_info:
@@ -40,23 +43,15 @@ class FileServer(QThread):
                 file_size = int(file_size)
 
                 with open(file_path, 'wb') as f:
-                    print("Arquivo Iniciado.....")
                     bytes_received = 0
                     while bytes_received < file_size:
-                        print("Arquivo Lido.....")
                         chunk = client_socket.recv(1024)
-                        print(f"Valor de chunk: {chunk}")
                         if not chunk:
-                            print("chunk Parado.....")
                             break
                         f.write(chunk)
-                        print("Dados escritos no arquivo.")
                         bytes_received += len(chunk)
                         progress = int((bytes_received / file_size) * 100)
                         self.progress_updated.emit(progress)
-                        #self.message.emit(f"Recebido: {bytes_received} de {file_size} bytes")
-
-                #self.message.emit(f"File {file_name} received and saved to {file_path}")
 
                 # Enviar confirmação de recebimento ao cliente
                 client_socket.sendall(b"OK")
