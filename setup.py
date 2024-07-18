@@ -14,8 +14,11 @@ setup(
             'sharexpress = main:main',  # Ajuste conforme necessário
         ],
     },
-    author="Weslei Ferreira Santos",
-    author_email="wesleiferreira608@gmail.com",
+    package_data={
+        '': ['app/gui/assets/app_icon.png'],
+    },
+    author="Seu Nome",
+    author_email="seu_email@example.com",
     description="Um aplicativo para enviar arquivos entre dispositivos",
     license="MIT",
     classifiers=[
