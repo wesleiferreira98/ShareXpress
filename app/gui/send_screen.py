@@ -116,9 +116,13 @@ class SendScreen(QMainWindow):
     def open_file_dialog(self):
         options = QFileDialog.Options()
         files, _ = QFileDialog.getOpenFileNames(self, "Selecionar Arquivos", "", "All Files (*)", options=options)
-        
-        self.file_widgets = {}  # Dicionário para armazenar widgets de arquivo
+
         if files:
+            # Limpar lista de arquivos e widgets existentes
+            self.file_list.clear()
+            self.files = []
+            self.file_widgets = {}
+
             for file in files:
                 file_name = os.path.basename(file)
                 self.files.append(file)
@@ -128,6 +132,7 @@ class SendScreen(QMainWindow):
                 self.file_list.addItem(item)
                 self.file_list.setItemWidget(item, item_widget)
                 self.file_widgets[file] = item_widget  # Armazenar o widget de arquivo no dicionário
+
 
     def validate_ip(self, ip):
         ip_pattern = re.compile(
@@ -189,6 +194,10 @@ class SendScreen(QMainWindow):
             QMessageBox.warning(self, "Erro", "Porta inválida. Por favor, insira um número de porta válido.")
             return
         self.client_threads = []
+
+        if  not self.files:
+            QMessageBox.warning(self, "Erro", "Lista de arquivos vazia, Escolha um ou mais arquivos antes de progessir.")
+            return
 
         for file in self.files:
             client_thread = FileClient(ip, port, file)
