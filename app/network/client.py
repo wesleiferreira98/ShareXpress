@@ -19,11 +19,11 @@ class FileClient(QThread):
             file_size = os.path.getsize(self.file_path)
 
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(10)  # Definir timeout de 60 segundos
+                s.settimeout(10)  # Definir timeout de 10 segundos
                 s.connect((self.ip, self.port))
                 
                 # Enviar informações do arquivo (nome e tamanho)
-                file_info = f"{file_name},{file_size}".encode()
+                file_info = f"{file_name},{file_size}\n".encode()  # Adiciona \n para demarcar o fim da mensagem
                 s.sendall(file_info)
 
                 # Espera uma confirmação de recebimento do servidor
@@ -38,7 +38,7 @@ class FileClient(QThread):
                 with open(self.file_path, 'rb') as f:
                     bytes_sent = 0
                     while True:
-                        bytes_read = f.read(1024)
+                        bytes_read = f.read(4096)
                         if not bytes_read:
                             break
                         s.sendall(bytes_read)
@@ -47,10 +47,15 @@ class FileClient(QThread):
                         self.progress_updated.emit(progress)
                         print(f"Enviado: {bytes_sent} de {file_size} bytes")
 
-            #self.message.emit(f"File {self.file_path} sent successfully.")
+                # Espera confirmação de recebimento do servidor
+                final_confirmation = s.recv(1024)
+                if final_confirmation == b"OK":
+                    print(f"Arquivo {self.file_path} enviado com sucesso.")
+                else:
+                    raise RuntimeError("Falha na confirmação final do servidor")
         except Exception as e:
-            #self.message.emit(f"Failed to send file {self.file_path}. Error: {e}")
-            pass
+            print(f"Failed to send file {self.file_path}. Error: {e}")
 
     def stop_client(self):
         self.terminate()  # Termina a thread do cliente se necessário
+
