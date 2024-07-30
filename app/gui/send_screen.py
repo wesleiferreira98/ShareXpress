@@ -1,10 +1,11 @@
 import os
 import socket
 import re
-from PyQt5.QtWidgets import QListWidgetItem,QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QFileDialog, QLineEdit, QLabel, QListWidget, QProgressBar, QDialog, QProgressDialog, QFrame
-from PyQt5.QtCore import  pyqtSlot, QPropertyAnimation
+from PyQt5.QtWidgets import QListWidgetItem, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QFileDialog, QLineEdit, QLabel, QListWidget, QProgressBar, QDialog, QProgressDialog, QFrame
+from PyQt5.QtCore import pyqtSlot, QPropertyAnimation
 from app.gui.components.file_item_widget import FileItemWidget
 from app.network.client import FileClient
+
 class SendScreen(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -195,20 +196,18 @@ class SendScreen(QMainWindow):
             return
         self.client_threads = []
 
-        if  not self.files:
+        if not self.files:
             QMessageBox.warning(self, "Erro", "Lista de arquivos vazia, Escolha um ou mais arquivos antes de progessir.")
             return
 
         for file in self.files:
             client_thread = FileClient(ip, port, file)
-            client_thread.progress_updated.connect(self.file_widgets[file].progress_bar.setValue)
+            client_thread.progress_updated.connect(lambda progress, estimated_time, file=file: self.file_widgets[file].update_progress(progress, estimated_time))
             client_thread.message.connect(self.show_message)
             self.client_threads.append(client_thread)
 
         for client_thread in self.client_threads:
             client_thread.start()
-
-            
 
     @pyqtSlot(str)
     def show_message(self, message):

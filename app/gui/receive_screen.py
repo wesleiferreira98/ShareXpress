@@ -95,7 +95,7 @@ class ReceiveScreen(QMainWindow):
 
         # Conectar sinais de FileServer aos slots da ReceiveScreen
         self.file_server.message.connect(self.show_message)
-        self.file_server.progress_updated.connect(self.update_progress)
+        #self.file_server.progress_updated.connect(self.update_progress)
 
     def get_ip_address(self):
         hostname = socket.gethostname()

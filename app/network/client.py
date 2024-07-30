@@ -4,7 +4,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 import time
 
 class FileClient(QThread):
-    progress_updated = pyqtSignal(int)
+    progress_updated = pyqtSignal(int, str)
     message = pyqtSignal(str)
 
     def __init__(self, ip, port, file_path):
@@ -28,12 +28,12 @@ class FileClient(QThread):
 
                 # Espera uma confirmação de recebimento do servidor
                 confirmation = s.recv(1024)
-                if confirmation != b"OK":
+                if confirmation != b"OK\n" and confirmation != b"OK":
                     raise RuntimeError("Falha na confirmação do servidor")
 
                 # Pequena pausa antes de enviar o arquivo
                 time.sleep(0.1)
-
+                start_time = time.time()
                 # Enviar o arquivo
                 with open(self.file_path, 'rb') as f:
                     bytes_sent = 0
@@ -44,12 +44,19 @@ class FileClient(QThread):
                         s.sendall(bytes_read)
                         bytes_sent += len(bytes_read)
                         progress = int((bytes_sent / file_size) * 100)
-                        self.progress_updated.emit(progress)
                         print(f"Enviado: {bytes_sent} de {file_size} bytes")
+
+                         # Calcular tempo estimado
+                        elapsed_time = time.time() - start_time
+                        estimated_total_time = (elapsed_time / bytes_sent) * file_size
+                        estimated_time_remaining = estimated_total_time - elapsed_time
+                        estimated_time_str = time.strftime("%M:%S", time.gmtime(estimated_time_remaining))
+                        
+                        self.progress_updated.emit(progress, estimated_time_str)
 
                 # Espera confirmação de recebimento do servidor
                 final_confirmation = s.recv(1024)
-                if final_confirmation == b"OK":
+                if final_confirmation == b"OK" or final_confirmation == b"OK\n":
                     print(f"Arquivo {self.file_path} enviado com sucesso.")
                 else:
                     raise RuntimeError("Falha na confirmação final do servidor")
