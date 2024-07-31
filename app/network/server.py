@@ -31,11 +31,11 @@ class ClientHandler(QThread):
                 file_path = os.path.join(self.save_dir, file_name)
                 
                 start_time = time.time()
+                chunk_size = 10 * 1024 * 1024  # Ajustar para receber blocos de 1MB
                 with open(file_path, 'wb') as f:
                     bytes_received = 0
                     while bytes_received < file_size:
-                        bytes_sent = 0
-                        chunk = self.client_socket.recv(1024)
+                        chunk = self.client_socket.recv(chunk_size)
                         if not chunk:
                             break
                         f.write(chunk)

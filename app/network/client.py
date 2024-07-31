@@ -17,9 +17,10 @@ class FileClient(QThread):
         try:
             file_name = os.path.basename(self.file_path)
             file_size = os.path.getsize(self.file_path)
+            chunk_size = 10 * 1024 * 1024  # Dividir em blocos de 10MB
 
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(10)  # Definir timeout de 10 segundos
+                s.settimeout(30)  # Definir timeout de 10 segundos
                 s.connect((self.ip, self.port))
                 
                 # Enviar informações do arquivo (nome e tamanho)
@@ -34,11 +35,11 @@ class FileClient(QThread):
                 # Pequena pausa antes de enviar o arquivo
                 time.sleep(0.1)
                 start_time = time.time()
-                # Enviar o arquivo
+                # Enviar o arquivo em blocos
                 with open(self.file_path, 'rb') as f:
                     bytes_sent = 0
                     while True:
-                        bytes_read = f.read(4096)
+                        bytes_read = f.read(chunk_size)
                         if not bytes_read:
                             break
                         s.sendall(bytes_read)
@@ -46,7 +47,7 @@ class FileClient(QThread):
                         progress = int((bytes_sent / file_size) * 100)
                         print(f"Enviado: {bytes_sent} de {file_size} bytes")
 
-                         # Calcular tempo estimado
+                        # Calcular tempo estimado
                         elapsed_time = time.time() - start_time
                         estimated_total_time = (elapsed_time / bytes_sent) * file_size
                         estimated_time_remaining = estimated_total_time - elapsed_time
@@ -65,4 +66,3 @@ class FileClient(QThread):
 
     def stop_client(self):
         self.terminate()  # Termina a thread do cliente se necessário
-
