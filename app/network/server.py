@@ -3,6 +3,7 @@ import socket
 from PyQt5.QtCore import QThread, pyqtSignal, pyqtSlot
 import json
 import time
+import pyperclip  # Biblioteca para acessar a área de transferência
 
 class ClientHandler(QThread):
     progress_updated = pyqtSignal(int, str)
@@ -15,7 +16,7 @@ class ClientHandler(QThread):
 
     def run(self):
         with self.client_socket:
-            file_info = self.client_socket.recv(2048).decode('iso-8859-1')
+            file_info = self.client_socket.recv(2048).decode('utf-8')
             if file_info:
                 try:
                     # Tentando decodificar como UTF-8
@@ -26,29 +27,35 @@ class ClientHandler(QThread):
                     file_info = json.loads(file_info)
                     file_name = file_info['fileName']
                     file_size = int(file_info['fileSize'])
+                    content = file_info['content']
                 
                 self.client_socket.sendall(b"OK\n")
-                file_path = os.path.join(self.save_dir, file_name)
                 
-                start_time = time.time()
-                chunk_size = 10 * 1024 * 1024  # Ajustar para receber blocos de 1MB
-                with open(file_path, 'wb') as f:
-                    bytes_received = 0
-                    while bytes_received < file_size:
-                        chunk = self.client_socket.recv(chunk_size)
-                        if not chunk:
-                            break
-                        f.write(chunk)
-                        bytes_received += len(chunk)
-                        progress = int((bytes_received / file_size) * 100)
-                        elapsed_time = time.time() - start_time
-                        estimated_total_time = (elapsed_time / bytes_received) * file_size
-                        remaining_time = estimated_total_time - elapsed_time
-                        estimated_time = time.strftime("%H:%M:%S", time.gmtime(remaining_time))
-                        self.progress_updated.emit(progress, estimated_time)
+                if file_name == "clipboard_content":
+                    pyperclip.copy(content)
+                    self.message.emit("Conteúdo da área de transferência recebido e copiado com sucesso")
+                else:
+                    file_path = os.path.join(self.save_dir, file_name)
+                    
+                    start_time = time.time()
+                    chunk_size = 10 * 1024 * 1024  # Ajustar para receber blocos de 10MB
+                    with open(file_path, 'wb') as f:
+                        bytes_received = 0
+                        while bytes_received < file_size:
+                            chunk = self.client_socket.recv(chunk_size)
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                            bytes_received += len(chunk)
+                            progress = int((bytes_received / file_size) * 100)
+                            elapsed_time = time.time() - start_time
+                            estimated_total_time = (elapsed_time / bytes_received) * file_size
+                            remaining_time = estimated_total_time - elapsed_time
+                            estimated_time = time.strftime("%H:%M:%S", time.gmtime(remaining_time))
+                            self.progress_updated.emit(progress, estimated_time)
 
-                self.client_socket.sendall(b"OK\n")
-                self.message.emit(f"File {file_name} received successfully")
+                    self.client_socket.sendall(b"OK\n")
+                    self.message.emit(f"Arquivo {file_name} recebido com sucesso")
 
 class FileServer(QThread):
     progress_updated = pyqtSignal(int, str)
@@ -71,12 +78,12 @@ class FileServer(QThread):
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(100)
         self.running = True
-        self.message.emit("Server started, waiting for connection...")
+        self.message.emit("Servidor iniciado, aguardando conexão...")
 
         while self.running:
             try:
                 client_socket, addr = self.server_socket.accept()
-                self.message.emit(f"Connection from {addr}")
+                self.message.emit(f"Conexão de {addr}")
 
                 # Finaliza threads anteriores se ainda estiverem ativas
                 self.cleanup_threads()
@@ -105,5 +112,5 @@ class FileServer(QThread):
     def stop_server(self):
         self.running = False
         self.server_socket.close()
-        self.message.emit("Server stopped")
+        self.message.emit("Servidor parado")
         self.cleanup_threads()

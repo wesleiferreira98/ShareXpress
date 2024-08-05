@@ -1,6 +1,8 @@
+import json
 import os
 import socket
 import re
+import pyperclip 
 from PyQt5.QtWidgets import QListWidgetItem, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QFileDialog, QLineEdit, QLabel, QListWidget, QProgressBar, QDialog, QProgressDialog, QFrame
 from PyQt5.QtCore import pyqtSlot, QPropertyAnimation
 from app.gui.components.file_item_widget import FileItemWidget
@@ -76,6 +78,10 @@ class SendScreen(QMainWindow):
         self.test_connection_button = QPushButton("Testar Conexão", self)
         self.test_connection_button.clicked.connect(self.test_connection)
         menu_layout.addWidget(self.test_connection_button)
+
+        self.send_clipboard_button = QPushButton("Enviar Área de Transferência", self)
+        self.send_clipboard_button.clicked.connect(self.send_clipboard_content)
+        menu_layout.addWidget(self.send_clipboard_button)
         
         self.menu_frame.setLayout(menu_layout)
         self.menu_frame.setVisible(False)
@@ -208,6 +214,42 @@ class SendScreen(QMainWindow):
 
         for client_thread in self.client_threads:
             client_thread.start()
+    
+    def send_clipboard_content(self):
+        ip = self.ip_input.text()
+        port = self.port_input.text()
+
+        if not ip:
+            QMessageBox.warning(self, "Erro", "Endereço IP está vazio. Por favor, insira um endereço IP.")
+            return
+        
+        if not self.validate_ip(ip):
+            QMessageBox.warning(self, "Erro", "Endereço IP inválido. Por favor, insira um endereço IP válido.")
+            return
+
+        if not port:
+            QMessageBox.warning(self, "Erro", "Porta está vazia. Por favor, insira uma porta.")
+            return
+        
+        try:
+            port = int(port)
+        except ValueError:
+            QMessageBox.warning(self, "Erro", "Porta inválida. Por favor, insira um número de porta válido.")
+            return
+
+        try:
+            content = pyperclip.paste()  # Pega o conteúdo da área de transferência
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",content)
+            if not content:
+                QMessageBox.warning(self, "Erro", "A área de transferência está vazia.")
+                return
+
+            with socket.create_connection((ip, port), timeout=10) as client_socket:
+                # Enviar informações sobre o "arquivo"
+                file_info = json.dumps({"fileName": "clipboard_content", "fileSize": len(content), "content": content})
+                client_socket.sendall(file_info.encode('utf-8'))
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Falha ao enviar conteúdo da área de transferência: {e}")
 
     @pyqtSlot(str)
     def show_message(self, message):

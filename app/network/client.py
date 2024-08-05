@@ -31,7 +31,6 @@ class FileClient(QThread):
                 confirmation = s.recv(1024)
                 if confirmation != b"OK\n" and confirmation != b"OK":
                     raise RuntimeError("Falha na confirmação do servidor")
-
                 # Pequena pausa antes de enviar o arquivo
                 time.sleep(0.1)
                 start_time = time.time()
