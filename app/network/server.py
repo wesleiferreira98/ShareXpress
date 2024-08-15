@@ -57,6 +57,29 @@ class ClientHandler(QThread):
                     self.client_socket.sendall(b"OK\n")
                     self.message.emit(f"Arquivo {file_name} recebido com sucesso")
 
+class DiscoveryResponder(QThread):
+    def __init__(self, port=12345):
+        super().__init__()
+        self.port = port
+        self.running = True
+
+    def run(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.bind(("", self.port))
+        while self.running:
+            try:
+                data, addr = sock.recvfrom(1024)
+                if data.decode('utf-8') == "DISCOVER_SERVER":
+                    response = "SERVER_HERE".encode('utf-8')
+                    sock.sendto(response, addr)
+            except socket.error:
+                pass
+        sock.close()
+
+    def stop(self):
+        self.running = False
+
 class FileServer(QThread):
     progress_updated = pyqtSignal(int, str)
     message = pyqtSignal(str)
@@ -70,11 +93,13 @@ class FileServer(QThread):
         self.running = False
         self.save_dir = os.path.join(os.path.expanduser("~"), "ShareXpress")
         self.client_threads = []
+        self.discovery_responder = DiscoveryResponder(port) 
 
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
 
     def run(self):
+        self.discovery_responder.start()
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(100)
         self.running = True

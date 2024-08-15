@@ -6,6 +6,7 @@ import pyperclip
 from PyQt5.QtWidgets import QListWidgetItem, QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QMessageBox, QFileDialog, QLineEdit, QLabel, QListWidget, QProgressBar, QDialog, QProgressDialog, QFrame
 from PyQt5.QtCore import pyqtSlot, QPropertyAnimation
 from app.gui.components.file_item_widget import FileItemWidget
+from app.gui.server_discovery_dialog import ServerDiscoveryDialog
 from app.network.client import FileClient
 
 class SendScreen(QMainWindow):
@@ -79,9 +80,15 @@ class SendScreen(QMainWindow):
         self.test_connection_button.clicked.connect(self.test_connection)
         menu_layout.addWidget(self.test_connection_button)
 
+        self.seach_server_button = QPushButton("Procurar dispositivos na rede", self)
+        self.seach_server_button.clicked.connect(self.open_server_discovery_dialog)
+        menu_layout.addWidget(self.seach_server_button)
+
         self.send_clipboard_button = QPushButton("Enviar Área de Transferência", self)
         self.send_clipboard_button.clicked.connect(self.send_clipboard_content)
         menu_layout.addWidget(self.send_clipboard_button)
+
+        
         
         self.menu_frame.setLayout(menu_layout)
         self.menu_frame.setVisible(False)
@@ -119,6 +126,7 @@ class SendScreen(QMainWindow):
         container.setLayout(main_layout)
         self.setCentralWidget(container)
         self.files = []
+        self.open_server_discovery_dialog()
     
     def open_file_dialog(self):
         options = QFileDialog.Options()
@@ -147,6 +155,16 @@ class SendScreen(QMainWindow):
         )
         return ip_pattern.match(ip) is not None
     
+
+    def open_server_discovery_dialog(self):
+        dialog = ServerDiscoveryDialog()
+        if dialog.exec_() == QDialog.Accepted:
+            server_info = dialog.selected_server
+            if server_info:
+                ip, port = server_info.split(':')
+                self.ip_input.setText(ip)
+                self.port_input.setText(port)
+
     def test_connection(self):
         ip = self.ip_input.text()
         port = self.port_input.text()
